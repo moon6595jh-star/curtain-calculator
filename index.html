@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>커튼·블라인드 견적 계산기</title>
 
 <style>
@@ -13,45 +13,72 @@ body{
   padding:14px;
   font-size:18px;
 }
-h1{text-align:center;margin:14px 0;font-size:26px}
+h1{
+  text-align:center;
+  font-size:26px;
+  margin:20px 0;
+}
 .calculator{
   background:#fff;
   border-radius:16px;
-  padding:16px;
-  margin-bottom:20px;
-  box-shadow:0 4px 12px rgba(0,0,0,.1)
+  padding:18px;
+  margin-bottom:22px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
 }
-.section-title{font-size:22px;font-weight:800;margin-bottom:12px}
-label{font-weight:700;margin-top:10px;display:block}
-input,select,button{
+.section-title{
+  font-size:22px;
+  font-weight:800;
+  margin-bottom:14px;
+}
+label{
+  font-weight:700;
+  margin-top:12px;
+  display:block;
+}
+input,select{
   width:100%;
   padding:14px;
-  font-size:18px;
+  font-size:20px;
   border-radius:10px;
-  margin-top:6px;
   border:1px solid #ccc;
+  margin-top:6px;
 }
 button{
+  width:100%;
+  margin-top:14px;
+  padding:16px;
+  font-size:20px;
+  font-weight:800;
+  border:none;
+  border-radius:12px;
   background:#4f46e5;
   color:#fff;
-  border:none;
-  margin-top:14px;
 }
-.result{margin-top:10px}
 .item{
   background:#f9fafb;
-  padding:12px;
   border-radius:10px;
+  padding:12px;
+  margin-top:10px;
+}
+.item button{
+  background:#ef4444;
   margin-top:8px;
 }
-.item button{background:#ef4444;margin-top:6px}
-.total{text-align:right;font-weight:800;margin-top:10px}
-#grand{
-  position:sticky;bottom:10px;
-  background:#111;color:#fff;
-  padding:18px;border-radius:16px;
-  font-size:22px;font-weight:900;
-  text-align:right
+.total{
+  text-align:right;
+  font-size:20px;
+  font-weight:800;
+  margin-top:10px;
+}
+#grandTotal{
+  position:sticky;
+  bottom:10px;
+  background:#fff;
+  padding:18px;
+  border-radius:16px;
+  font-size:24px;
+  font-weight:900;
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
 }
 </style>
 </head>
@@ -59,49 +86,104 @@ button{
 <body>
 <h1>커튼·블라인드 견적 계산기</h1>
 
-<div id="wrap"></div>
-<div id="grand">총합계 0원</div>
+<div class="calculator">
+<div class="section-title">1. 속지 커튼</div>
+<input id="w1" type="number" placeholder="가로(mm)">
+<input id="p1" type="number" placeholder="야드당 가격">
+<button onclick="addSheer()">추가</button>
+<div id="l1"></div><div class="total" id="t1"></div>
+</div>
+
+<div class="calculator">
+<div class="section-title">2. 암막 커튼</div>
+<input id="w2" type="number" placeholder="가로(mm)">
+<input id="p2" type="number" placeholder="폭당 가격">
+<button onclick="addDark()">추가</button>
+<div id="l2"></div><div class="total" id="t2"></div>
+</div>
+
+<div class="calculator">
+<div class="section-title">3. 나비주름 커튼</div>
+<input id="w3" type="number" placeholder="가로(mm)">
+<select id="b3">
+<option value="casa">까사공장</option>
+<option value="neo">네오텍스</option>
+</select>
+<input id="p3" type="number" placeholder="폭당 가격">
+<button onclick="addWave()">추가</button>
+<div id="l3"></div><div class="total" id="t3"></div>
+</div>
+
+<div class="calculator">
+<div class="section-title">5. 전동레일</div>
+<select id="rail">
+<option value="180000">조절전동 300 (180,000)</option>
+<option value="190000">조절전동 450 (190,000)</option>
+<option value="220000">조절전동 520 (220,000)</option>
+<option value="210000">제작전동 300 (210,000)</option>
+<option value="220000">제작전동 400 (220,000)</option>
+<option value="230000">제작전동 500 (230,000)</option>
+</select>
+<button onclick="addRail()">추가</button>
+<div id="l5"></div><div class="total" id="t5"></div>
+</div>
+
+<div id="grandTotal"></div>
 
 <script>
-const data=[];
-let timer;
+let items=[];
+const now=Date.now();
+const saved=JSON.parse(localStorage.getItem("data")||"null");
+if(saved && now-saved.time<600000) items=saved.items;
 
-const won=n=>Math.round(n).toLocaleString()+"원";
-const save=()=>localStorage.setItem("calc",JSON.stringify(data));
-const load=()=>JSON.parse(localStorage.getItem("calc")||"[]");
-const reset=()=>{localStorage.removeItem("calc");location.reload();}
-const touch=()=>{clearTimeout(timer);timer=setTimeout(reset,600000);}
-
-document.body.addEventListener("click",touch);
-document.body.addEventListener("input",touch);
-
-function add(text,price){
-  data.push(price);
-  save();
-  render(text,price);
+function save(){
+ localStorage.setItem("data",JSON.stringify({time:Date.now(),items}));
+ render();
 }
-
-function render(text,price){
-  const div=document.createElement("div");
-  div.className="item";
-  div.innerHTML=`${text}<br><b>${won(price)}</b>
-  <button onclick="this.parentElement.remove();data.splice(data.indexOf(${price}),1);save();total()">삭제</button>`;
-  document.getElementById("wrap").appendChild(div);
-  total();
+function money(n){return n.toLocaleString()+"원";}
+function render(){
+ let sums=[0,0,0,0,0,0];
+ ["l1","l2","l3","","l5"].forEach(id=>{if(id)document.getElementById(id).innerHTML=""});
+ items.forEach((it,i)=>{
+  sums[it.t]+=it.v;
+  const d=document.createElement("div");
+  d.className="item";
+  d.innerHTML=it.n+"<button onclick='del("+i+")'>삭제</button>";
+  document.getElementById("l"+it.t).appendChild(d);
+ });
+ sums.forEach((s,i)=>{if(document.getElementById("t"+i))document.getElementById("t"+i).innerText=s?money(s):""});
+ document.getElementById("grandTotal").innerText="전체 합계 : "+money(sums.reduce((a,b)=>a+b,0));
 }
+function del(i){items.splice(i,1);save();}
 
-function total(){
-  document.getElementById("grand").innerText=
-  "총합계 "+won(data.reduce((a,b)=>a+b,0));
+function addSheer(){
+ let w=+w1.value,p=+p1.value;if(!w||!p)return;
+ let install=w>4800?90000:80000;
+ let yard=((w+200)*2)/900;
+ items.push({t:1,v:yard*p+install,n:`속지 ${yard.toFixed(2)}야드 / ${money(install)}`});
+ save();
 }
-
-window.onload=()=>{
-  load().forEach(p=>add("복원 항목",p));
-  touch();
+function addDark(){
+ let w=+w2.value,p=+p2.value;if(!w||!p)return;
+ let fold=Math.max(2,Math.ceil(w/1000));
+ let install=fold>=4?90000:80000;
+ items.push({t:2,v:fold*p+install,n:`암막 ${fold}폭 / ${money(install)}`});
+ save();
 }
+function addWave(){
+ let w=+w3.value,p=+p3.value;if(!w||!p)return;
+ let fold=Math.ceil(((w+200)*2)/1500);
+ let install=fold>=4?90000:80000;
+ items.push({t:3,v:fold*p+install,n:`나비주름 ${fold}폭 / ${money(install)}`});
+ save();
+}
+function addRail(){
+ let v=+rail.value;
+ let n=rail.options[rail.selectedIndex].text;
+ items.push({t:5,v,n});
+ save();
+}
+render();
 </script>
-
-<!-- 계산기별 UI는 GitHub에 올린 파일 기준 그대로 유지 -->
-
 </body>
 </html>
