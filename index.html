@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>커튼·블라인드 견적 계산기</title>
+
+<style>
+body{
+  font-family:Apple SD Gothic Neo,sans-serif;
+  background:#f4f4f7;
+  padding:12px;margin:0;color:#222
+}
+h1{text-align:center;margin:20px 0}
+.calculator{
+  background:#fff;border-radius:14px;
+  padding:18px;margin-bottom:24px;
+  box-shadow:0 4px 10px rgba(0,0,0,.1)
+}
+label{font-weight:600;margin-top:10px;display:block}
+input,select{
+  width:100%;padding:10px;margin-top:6px;
+  border-radius:8px;border:1px solid #ccc
+}
+button{
+  width:100%;margin-top:12px;
+  background:#4f46e5;color:#fff;
+  padding:12px;border-radius:10px;
+  border:none;font-size:1rem
+}
+.item{
+  background:#fff;border:1px solid #ddd;
+  padding:10px;border-radius:8px;
+  margin-top:8px
+}
+.item button{background:#ef4444}
+.total{text-align:right;font-weight:700;margin-top:6px}
+#grandTotal{
+  position:sticky;bottom:10px;
+  background:#fff;padding:16px;
+  font-size:1.2rem;font-weight:800;
+  border-radius:14px
+}
+#resetAll{background:#ef4444;font-weight:800}
+</style>
+</head>
+
+<body>
+<h1>커튼·블라인드 견적 계산기</h1>
+
+<!-- 1 속지 -->
+<div class="calculator">
+<h3>1. 속지 커튼</h3>
+<input id="w1" type="number" placeholder="가로(mm)">
+<input id="p1" type="number" placeholder="야드당 가격">
+<button onclick="addSheer()">추가</button>
+<div id="l1"></div>
+<div class="total" id="t1">0원</div>
+</div>
+
+<!-- 2 암막 -->
+<div class="calculator">
+<h3>2. 암막 커튼</h3>
+<input id="w2" type="number" placeholder="가로(mm)">
+<input id="p2" type="number" placeholder="폭당 가격">
+<button onclick="addBlack()">추가</button>
+<div id="l2"></div>
+<div class="total" id="t2">0원</div>
+</div>
+
+<!-- 3 나비 -->
+<div class="calculator">
+<h3>3. 나비주름 커튼</h3>
+<input id="w3" type="number" placeholder="가로(mm)">
+<select id="b3">
+  <option value="casa">까사공장</option>
+  <option value="neo">네오텍스</option>
+</select>
+<input id="p3" type="number" placeholder="폭당 가격">
+<button onclick="addWave()">추가</button>
+<div id="l3"></div>
+<div class="total" id="t3">0원</div>
+</div>
+
+<!-- 4 블라인드 -->
+<div class="calculator">
+<h3>4. 블라인드</h3>
+<input id="w4" type="number" placeholder="가로(cm)">
+<input id="h4" type="number" placeholder="세로(cm)">
+<input id="p4" type="number" placeholder="단가">
+<button onclick="addBlind()">추가</button>
+<div id="l4"></div>
+<div class="total" id="t4">0원</div>
+</div>
+
+<!-- 5 전동 -->
+<div class="calculator">
+<h3>5. 전동 레일</h3>
+<select id="m5">
+<option value="180000">조절전동300 (180,000)</option>
+<option value="190000">조절레일450 (190,000)</option>
+<option value="220000">조절레일520 (220,000)</option>
+<option value="210000">제작전동300 (210,000)</option>
+<option value="220000">제작전동400 (220,000)</option>
+<option value="230000">제작전동500 (230,000)</option>
+</select>
+<button onclick="addMotor()">추가</button>
+<div id="l5"></div>
+<div class="total" id="t5">0원</div>
+</div>
+
+<div id="grandTotal">전체: 0원</div>
+<button id="resetAll" onclick="resetAll()">전체 삭제</button>
+
+<script>
+let sum=[0,0,0,0,0,0];
+
+function money(n){return Math.round(n).toLocaleString()+"원"}
+function update(){
+  document.getElementById("grandTotal").innerText=
+    "전체: "+money(sum.reduce((a,b)=>a+b))
+  localStorage.setItem("data",JSON.stringify({sum,time:Date.now()}))
+}
+
+function addSheer(){
+ let w=+w1.value, p=+p1.value;
+ let yard=((w+200)*2)/900;
+ let install=w>4800?90000:80000;
+ add(1,`속지 ${yard.toFixed(2)}야드`,yard*p+install)
+}
+
+function addBlack(){
+ let w=+w2.value,p=+p2.value;
+ let fold=Math.min(6,Math.max(2,Math.ceil(w/1000)));
+ let install=fold>=4?90000:80000;
+ add(2,`암막 ${fold}폭`,fold*p+install)
+}
+
+function addWave(){
+ let w=+w3.value,p=+p3.value;
+ let f=b3.value=="casa"?((w+200)*2)/1500:(w*2.2)/900;
+ if(b3.value=="casa") f=(f%1)>0.29?Math.ceil(f):Math.floor(f);
+ let install=f>=4?90000:80000;
+ add(3,`나비 ${f}폭`,f*p+install)
+}
+
+function addBlind(){
+ let w=+w4.value,h=Math.max(+h4.value,150),p=+p4.value;
+ let m=Math.max(2,(w/100)*(h/100));
+ let install=w<=160?30000:w<=200?40000:50000;
+ add(4,`블라인드 ${m.toFixed(2)}회배`,m*p+install)
+}
+
+function addMotor(){
+ let v=+m5.value;
+ add(5,"전동 블라인드",v)
+}
+
+function add(i,txt,val){
+ let d=document.createElement("div");
+ d.className="item";
+ d.innerHTML=`${txt} / ${money(val)}
+ <button onclick="this.parentElement.remove();sum[${i}]-=${val};update()">삭제</button>`;
+ document.getElementById("l"+i).appendChild(d);
+ sum[i]+=val;
+ document.getElementById("t"+i).innerText=money(sum[i]);
+ update();
+}
+
+function resetAll(){
+ if(confirm("전체 초기화?")){
+  sum=[0,0,0,0,0,0];
+  document.querySelectorAll(".item").forEach(e=>e.remove());
+  document.querySelectorAll(".total").forEach(e=>e.innerText="0원");
+  localStorage.clear();update();
+ }
+}
+
+window.onload=()=>{
+ let d=JSON.parse(localStorage.getItem("data"));
+ if(d && Date.now()-d.time<600000){
+  sum=d.sum;update();
+ }else localStorage.clear();
+}
+</script>
+</body>
+</html>
